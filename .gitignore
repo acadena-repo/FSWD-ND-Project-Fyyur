@@ -1,0 +1,5 @@
+# Ignore Python Environment folder
+fyyur
+
+# Ignore .env file
+.env
