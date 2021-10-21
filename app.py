@@ -10,7 +10,7 @@ import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
-from flask_sqlalchemy import SQLAlchemy
+from models import db, Venue, Artist, Show, Venue_gen, Artist_gen
 from flask_migrate import Migrate
 import logging
 from logging import Formatter, FileHandler
@@ -23,13 +23,12 @@ from forms import *
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
+db.init_app(app)
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
 migrate = Migrate(app, db)
 
-from models import Venue, Artist, Show, Venue_gen, Artist_gen
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
