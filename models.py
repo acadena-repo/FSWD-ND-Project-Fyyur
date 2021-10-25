@@ -17,18 +17,8 @@ class Venue(db.Model):
     website_link = db.Column(db.String(120))
     seeking_talent = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String())
-    genres = db.relationship('Venue_gen', back_populates='gen', cascade="all, delete-orphan")
-    shows = db.relationship('Show', backref='venue')
-
-class Venue_gen(db.Model):
-
-    id = db.Column(db.Integer, primary_key=True)
-    genre = db.Column(db.String())
-    venue_id = db.Column(db.Integer, db.ForeignKey('venue.id'))
-    gen = db.relationship('Venue', back_populates='genres')
-
-    def __repr__(self):
-        return f'{self.genre}'
+    genres = db.Column(db.String())
+    shows = db.relationship('Show', backref='venue', cascade='all, delete')
 
 class Artist(db.Model):
     __tablename__ = 'artist'
@@ -44,18 +34,8 @@ class Artist(db.Model):
     website_link = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String())
-    genres = db.relationship('Artist_gen', back_populates='gen', cascade="all, delete-orphan")
-    shows = db.relationship('Show', backref='artist')
-
-class Artist_gen(db.Model):
-
-    id = db.Column(db.Integer, primary_key=True)
-    genre = db.Column(db.String())
-    artist_id = db.Column(db.Integer, db.ForeignKey('artist.id'))
-    gen = db.relationship('Artist', back_populates='genres')
-
-    def __repr__(self):
-        return f'{self.genre}'    
+    genres = db.Column(db.String())
+    shows = db.relationship('Show', backref='artist')   
 
 class Show(db.Model):
     __tablename__ = 'shows'

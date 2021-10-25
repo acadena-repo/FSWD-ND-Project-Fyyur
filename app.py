@@ -8,9 +8,12 @@ from datetime import datetime as dt
 from typing import Type
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import (
+  Flask, render_template, request, Response, 
+  flash, redirect, url_for
+  )
 from flask_moment import Moment
-from models import db, Venue, Artist, Show, Venue_gen, Artist_gen
+from models import db, Venue, Artist, Show
 from flask_migrate import Migrate
 import logging
 from logging import Formatter, FileHandler
@@ -100,7 +103,7 @@ def show_venue(venue_id):
   pst = 0
   nxt = 0
   venue = Venue.query.get(venue_id)
-  all_shows = Show.query.filter_by(venue_id = str(venue_id))
+  all_shows = db.session.query(Show).join(Venue).filter(Show.venue_id == venue.id).all()
   past_shows = []
   next_shows = []
 
@@ -115,10 +118,10 @@ def show_venue(venue_id):
       'artist_image_link':artist.image_link, 'start_time':show.event_dt})
       pst += 1
 
-    data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres, 'address':venue.address,
-    'city':venue.city, 'state':venue.state, 'phone':venue.phone, 'website':venue.website_link, 'facebook_link':venue.facebook_link,
-    'seeking_talent':venue.seeking_talent, 'seeking_description':venue.seeking_description, 'image_link':venue.image_link,
-    'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
+  data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres.split(), 'address':venue.address,
+  'city':venue.city, 'state':venue.state, 'phone':venue.phone, 'website':venue.website_link, 'facebook_link':venue.facebook_link,
+  'seeking_talent':venue.seeking_talent, 'seeking_description':venue.seeking_description, 'image_link':venue.image_link,
+  'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
 
   return render_template('pages/show_venue.html', venue=data)
 
@@ -141,20 +144,14 @@ def create_venue_submission():
     new_venue.state = request.form.get("state")
     new_venue.address = request.form.get("address")
     new_venue.phone = request.form.get("phone")
+    new_venue.genres = ' '.join(request.form.getlist("genres"))
     new_venue.image_link = request.form.get("image_link")
     new_venue.facebook_link = request.form.get("facebook_link")
     new_venue.website_link = request.form.get("website_link")
     new_venue.seeking_talent = True if request.form.get("seeking_talent") == 'y' else False
     new_venue.seeking_description = request.form.get("seeking_description")
+
     db.session.add(new_venue)
-    db.session.flush()
-
-    new_gen = [Venue_gen() for i in range(len(request.form.getlist("genres")))]
-    for i, g in enumerate(request.form.getlist("genres")):
-      new_gen[i].venue_id = new_venue.id
-      new_gen[i].genre = g
-      db.session.add(new_gen[i])
-
     db.session.commit()    
     # on successful db insert, flash success
     flash('Venue ' + request.form.get("name") + ' was successfully listed!')
@@ -213,22 +210,23 @@ def show_artist(artist_id):
   pst = 0
   nxt = 0
   artist = Artist.query.get(artist_id)
-  all_shows = Show.query.filter_by(artist_id = str(artist_id))
+  all_shows = db.session.query(Show).join(Artist).filter(Show.artist_id == artist.id).all()
   past_shows = []
   next_shows = []
 
-  for show in all_shows:
-    venue = Venue.query.get(show.venue_id)
-    if show.event_dt > dt_now:
-      next_shows.append({'venue_id':venue.id, 'venue_name':venue.name,
-      'venue_image_link':venue.image_link, 'start_time':show.event_dt})
-      nxt += 1
-    else:
-      past_shows.append({'venue_id':venue.id, 'venue_name':venue.name,
-      'venue_image_link':venue.image_link, 'start_time':show.event_dt})
-      pst += 1
+  if all_shows != None:
+    for show in all_shows:
+      venue = Venue.query.get(show.venue_id)
+      if show.event_dt > dt_now:
+        next_shows.append({'venue_id':venue.id, 'venue_name':venue.name,
+        'venue_image_link':venue.image_link, 'start_time':show.event_dt})
+        nxt += 1
+      else:
+        past_shows.append({'venue_id':venue.id, 'venue_name':venue.name,
+        'venue_image_link':venue.image_link, 'start_time':show.event_dt})
+        pst += 1
 
-    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres, 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
+    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres.split(), 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
     'website':artist.website_link, 'facebook_link':artist.facebook_link, 'seeking_venue':artist.seeking_venue, 
     'seeking_description':artist.seeking_description, 'image_link':artist.image_link,
     'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
@@ -242,15 +240,11 @@ def edit_artist(artist_id):
   artist = Artist.query.get(artist_id)
   form = ArtistForm()
 
-  gens = []
-  for g in artist.genres:
-    gens.append(f'{g}')
-
   form.name.data = artist.name
   form.city.data = artist.city
   form.state.data = artist.state
   form.phone.data = artist.phone
-  form.genres.data = gens
+  form.genres.data = artist.genres.split()
   form.image_link.data = artist.image_link
   form.facebook_link.data = artist.facebook_link
   form.website_link.data = artist.website_link
@@ -282,16 +276,12 @@ def edit_venue(venue_id):
   venue = Venue.query.get(venue_id)
   form = VenueForm()
 
-  gens = []
-  for g in venue.genres:
-    gens.append(f'{g}')
-
   form.name.data = venue.name
   form.city.data = venue.city
   form.state.data = venue.state
   form.address.data = venue.address
   form.phone.data = venue.phone
-  form.genres.data = gens
+  form.genres.data = venue.genres.split()
   form.image_link.data = venue.image_link
   form.facebook_link.data = venue.facebook_link
   form.website_link.data = venue.website_link
@@ -336,21 +326,16 @@ def create_artist_submission():
     new_artist.city = request.form.get("city")
     new_artist.state = request.form.get("state")
     new_artist.phone = request.form.get("phone")
+    new_artist.genres = ' '.join(request.form.getlist("genres"))
     new_artist.image_link = request.form.get("image_link")
     new_artist.facebook_link = request.form.get("facebook_link")
     new_artist.website_link = request.form.get("website_link")
     new_artist.seeking_venue = True if request.form.get("seeking_venue") == 'y' else False
     new_artist.seeking_description = request.form.get("seeking_description")
+
     db.session.add(new_artist)
-    db.session.flush()
+    db.session.commit()
 
-    new_gen = [Artist_gen() for i in range(len(request.form.getlist("genres")))]
-    for i, g in enumerate(request.form.getlist("genres")):
-      new_gen[i].artist_id = new_artist.id
-      new_gen[i].genre = g
-      db.session.add(new_gen[i])
-
-    db.session.commit()    
     # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully listed!')
 
