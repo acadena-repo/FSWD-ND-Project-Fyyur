@@ -1,5 +1,11 @@
 # Ignore Python Environment folder
 fyyur
 
+# Ignore compiled bytecode
+__pycache__
+
+# Ignore database migrations
+migrations
+
 # Ignore .env file
 .env
