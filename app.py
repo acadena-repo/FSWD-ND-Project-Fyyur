@@ -118,7 +118,7 @@ def show_venue(venue_id):
       'artist_image_link':artist.image_link, 'start_time':show.event_dt})
       pst += 1
 
-  data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres.split(), 'address':venue.address,
+  data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres.split('/'), 'address':venue.address,
   'city':venue.city, 'state':venue.state, 'phone':venue.phone, 'website':venue.website_link, 'facebook_link':venue.facebook_link,
   'seeking_talent':venue.seeking_talent, 'seeking_description':venue.seeking_description, 'image_link':venue.image_link,
   'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
@@ -137,26 +137,32 @@ def create_venue_form():
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
 
+  form = VenueForm(request.form)
+
   try:
-    new_venue = Venue()
-    new_venue.name = request.form.get("name")
-    new_venue.city = request.form.get("city")
-    new_venue.state = request.form.get("state")
-    new_venue.address = request.form.get("address")
-    new_venue.phone = request.form.get("phone")
-    new_venue.genres = ' '.join(request.form.getlist("genres"))
-    new_venue.image_link = request.form.get("image_link")
-    new_venue.facebook_link = request.form.get("facebook_link")
-    new_venue.website_link = request.form.get("website_link")
-    new_venue.seeking_talent = True if request.form.get("seeking_talent") == 'y' else False
-    new_venue.seeking_description = request.form.get("seeking_description")
+    if form.validate_on_submit:
+      new_venue = Venue()
+      new_venue.name = form.name.data
+      new_venue.city = form.city.data
+      new_venue.state = form.state.data
+      new_venue.address = form.address.data
+      new_venue.phone = form.phone.data
+      new_venue.genres = '/'.join(form.genres.data)
+      new_venue.image_link = form.image_link.data
+      new_venue.facebook_link = form.facebook_link.data
+      new_venue.website_link = form.website_link.data
+      new_venue.seeking_talent = True if form.seeking_talent.data else False
+      new_venue.seeking_description = form.seeking_description.data
 
-    db.session.add(new_venue)
-    db.session.commit()    
-    # on successful db insert, flash success
-    flash('Venue ' + request.form.get("name") + ' was successfully listed!')
+      db.session.add(new_venue)
+      db.session.commit()    
+      # on successful db insert, flash success
+      flash('Venue ' + request.form.get("name") + ' was successfully listed!')
+      return render_template('pages/home.html')
 
-    return render_template('pages/home.html')
+    else:
+      flash('An invalid form was submitted' + ' Venue could not be listed.')
+      return render_template('pages/home.html')
 
   except Exception as e:
     # on unsuccessful db insert, flash an error
@@ -226,7 +232,7 @@ def show_artist(artist_id):
         'venue_image_link':venue.image_link, 'start_time':show.event_dt})
         pst += 1
 
-    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres.split(), 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
+    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres.split('/'), 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
     'website':artist.website_link, 'facebook_link':artist.facebook_link, 'seeking_venue':artist.seeking_venue, 
     'seeking_description':artist.seeking_description, 'image_link':artist.image_link,
     'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
@@ -244,7 +250,7 @@ def edit_artist(artist_id):
   form.city.data = artist.city
   form.state.data = artist.state
   form.phone.data = artist.phone
-  form.genres.data = artist.genres.split()
+  form.genres.data = artist.genres.split('/')
   form.image_link.data = artist.image_link
   form.facebook_link.data = artist.facebook_link
   form.website_link.data = artist.website_link
@@ -264,7 +270,7 @@ def edit_artist_submission(artist_id):
   artist.image_link = request.form.get("image_link")
   artist.facebook_link = request.form.get("facebook_link")
   artist.website_link = request.form.get("website_link")
-  artist.seeking_talent = True if request.form.get("seeking_talent") == 'y' else False
+  artist.seeking_venue = True if request.form.get("seeking_venue") == 'y' else False
   artist.seeking_description = request.form.get("seeking_description")
   
   db.session.commit()
@@ -281,7 +287,7 @@ def edit_venue(venue_id):
   form.state.data = venue.state
   form.address.data = venue.address
   form.phone.data = venue.phone
-  form.genres.data = venue.genres.split()
+  form.genres.data = venue.genres.split('/')
   form.image_link.data = venue.image_link
   form.facebook_link.data = venue.facebook_link
   form.website_link.data = venue.website_link
@@ -320,26 +326,32 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
 
+  form = ArtistForm(request.form)
+
   try:
-    new_artist = Artist()
-    new_artist.name = request.form.get("name")
-    new_artist.city = request.form.get("city")
-    new_artist.state = request.form.get("state")
-    new_artist.phone = request.form.get("phone")
-    new_artist.genres = ' '.join(request.form.getlist("genres"))
-    new_artist.image_link = request.form.get("image_link")
-    new_artist.facebook_link = request.form.get("facebook_link")
-    new_artist.website_link = request.form.get("website_link")
-    new_artist.seeking_venue = True if request.form.get("seeking_venue") == 'y' else False
-    new_artist.seeking_description = request.form.get("seeking_description")
+    if form.validate_on_submit:
+      new_artist = Artist()
+      new_artist.name = form.name.data
+      new_artist.city = form.city.data
+      new_artist.state = form.state.data
+      new_artist.phone = form.phone.data
+      new_artist.genres = '/'.join(form.genres.data)
+      new_artist.image_link = form.image_link.data
+      new_artist.facebook_link = form.facebook_link.data
+      new_artist.website_link = form.website_link.data
+      new_artist.seeking_venue = True if form.seeking_venue.data else False
+      new_artist.seeking_description = form.seeking_description.data
 
-    db.session.add(new_artist)
-    db.session.commit()
+      db.session.add(new_artist)
+      db.session.commit()
 
-    # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
+      # on successful db insert, flash success
+      flash('Artist ' + request.form['name'] + ' was successfully listed!')
+      return render_template('pages/home.html')
 
-    return render_template('pages/home.html')
+    else:
+      flash('An invalid form was submitted' + ' Artist could not be listed.')
+      return render_template('pages/home.html')
 
   except Exception as e:
     # on unsuccessful db insert, flash an error
@@ -372,18 +384,24 @@ def create_shows():
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
 
+  form = ShowForm(request.form)
+
   try:
-    new_show = Show()
-    new_show.artist_id = request.form.get("artist_id")
-    new_show.venue_id = request.form.get("venue_id")
-    new_show.event_dt = request.form.get("start_time")
-    db.session.add(new_show)
+    if form.validate_on_submit:
+      new_show = Show()
+      new_show.artist_id = form.artist_id.data
+      new_show.venue_id = form.venue_id.data
+      new_show.event_dt = form.start_time.data
+      db.session.add(new_show)
 
-    db.session.commit()    
-    # on successful db insert, flash success
-    flash('Show was successfully listed!')
+      db.session.commit()    
+      # on successful db insert, flash success
+      flash('Show was successfully listed!')
+      return render_template('pages/home.html')
 
-    return render_template('pages/home.html')
+    else:
+      flash('An invalid form was submitted' + ' Show could not be listed.')
+      return render_template('pages/home.html')
 
   except Exception as e:
     # on unsuccessful db insert, flash an error
