@@ -14,7 +14,7 @@ from flask import (
   )
 from flask_moment import Moment
 from models import db, Venue, Artist, Show
-from flask_migrate import Migrate
+from flask_migrate import Migrate, show
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
@@ -117,8 +117,8 @@ def show_venue(venue_id):
       past_shows.append({'artist_id':artist.id, 'artist_name':artist.name,
       'artist_image_link':artist.image_link, 'start_time':show.event_dt})
       pst += 1
-
-  data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres.split('/'), 'address':venue.address,
+  
+  data = {'id':venue.id, 'name':venue.name, 'genres':venue.genres, 'address':venue.address,
   'city':venue.city, 'state':venue.state, 'phone':venue.phone, 'website':venue.website_link, 'facebook_link':venue.facebook_link,
   'seeking_talent':venue.seeking_talent, 'seeking_description':venue.seeking_description, 'image_link':venue.image_link,
   'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
@@ -147,7 +147,7 @@ def create_venue_submission():
       new_venue.state = form.state.data
       new_venue.address = form.address.data
       new_venue.phone = form.phone.data
-      new_venue.genres = '/'.join(form.genres.data)
+      new_venue.genres = form.genres.data
       new_venue.image_link = form.image_link.data
       new_venue.facebook_link = form.facebook_link.data
       new_venue.website_link = form.website_link.data
@@ -232,7 +232,7 @@ def show_artist(artist_id):
         'venue_image_link':venue.image_link, 'start_time':show.event_dt})
         pst += 1
 
-    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres.split('/'), 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
+    data = {'id':artist.id, 'name':artist.name, 'genres':artist.genres, 'city':artist.city, 'state':artist.state, 'phone':artist.phone, 
     'website':artist.website_link, 'facebook_link':artist.facebook_link, 'seeking_venue':artist.seeking_venue, 
     'seeking_description':artist.seeking_description, 'image_link':artist.image_link,
     'past_shows':past_shows, 'past_shows_count':pst, 'upcoming_shows':next_shows, 'upcoming_shows_count':nxt}
@@ -250,7 +250,7 @@ def edit_artist(artist_id):
   form.city.data = artist.city
   form.state.data = artist.state
   form.phone.data = artist.phone
-  form.genres.data = artist.genres.split('/')
+  form.genres.data = artist.genres
   form.image_link.data = artist.image_link
   form.facebook_link.data = artist.facebook_link
   form.website_link.data = artist.website_link
@@ -287,7 +287,7 @@ def edit_venue(venue_id):
   form.state.data = venue.state
   form.address.data = venue.address
   form.phone.data = venue.phone
-  form.genres.data = venue.genres.split('/')
+  form.genres.data = venue.genres
   form.image_link.data = venue.image_link
   form.facebook_link.data = venue.facebook_link
   form.website_link.data = venue.website_link
@@ -335,7 +335,7 @@ def create_artist_submission():
       new_artist.city = form.city.data
       new_artist.state = form.state.data
       new_artist.phone = form.phone.data
-      new_artist.genres = '/'.join(form.genres.data)
+      new_artist.genres = form.genres.data
       new_artist.image_link = form.image_link.data
       new_artist.facebook_link = form.facebook_link.data
       new_artist.website_link = form.website_link.data
@@ -365,13 +365,11 @@ def create_artist_submission():
 @app.route('/shows')
 def shows():
   data = []
-  all_shows = Show.query.all()
+  all_shows = db.session.query(Show, Artist, Venue).filter(Show.artist_id == Artist.id, Show.venue_id == Venue.id).all()
 
   for show in all_shows:
-    artist = Artist.query.get(show.artist_id)
-    venue = Venue.query.get(show.venue_id)
-    data.append({'venue_id':venue.id, 'venue_name':venue.name, 'artist_id':artist.id, 'artist_name':artist.name,
-    "artist_image_link":artist.image_link, "start_time":show.event_dt})
+    data.append({'venue_id':show[2].id, 'venue_name':show[2].name, 'artist_id':show[1].id, 'artist_name':show[1].name,
+    "artist_image_link":show[1].image_link, "start_time":show[0].event_dt})   
 
   return render_template('pages/shows.html', shows=data)
 
